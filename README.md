@@ -1,11 +1,12 @@
 # AI Job Hunter 🚀
 
-An automated job scraper that finds Python/tech opportunities from **RemoteOK**, **Naukri**, and **Indeed**, scores them based on your skills, and sends instant **Telegram notifications**.
+An automated job scraper that finds Python/tech opportunities from **RemoteOK**, **Naukri**, **Indeed**, and **Infopark**, scores them based on your profile, and sends instant **Telegram notifications**.
 
 ## Features
 
 ✅ **Multi-source scraping**: RemoteOK + Naukri + Indeed  
-✅ **Skill-based scoring**: AI filters jobs matching your skills  
+✅ **Resume-based scoring**: filters jobs matching your resume/profile  
+✅ **Entry-level filter**: keeps roles focused on 0-1 year/fresher/intern tracks  
 ✅ **Telegram alerts**: Instant notifications for matching jobs  
 ✅ **Duplicate protection**: SQLite prevents repeat notifications  
 ✅ **Zero cost**: Runs free on GitHub Actions  
@@ -48,7 +49,7 @@ TELEGRAM_BOT_TOKEN=your_token_here
 TELEGRAM_CHAT_ID=your_chat_id_here
 ```
 
-### 4. Customize Skills
+### 4. Customize Skills / Resume
 
 Edit `config.py`:
 ```python
@@ -59,6 +60,14 @@ SKILLS = [
     # add your skills
 ]
 ```
+
+Optional resume-based setup:
+
+1. Put your resume PDF in project root as `Jeffy_Sajan.pdf` (or set `RESUME_PDF_PATH` in `.env`).
+2. For GitHub Actions without uploading PDF, set `RESUME_SKILLS_OVERRIDE` in secrets/variables:
+   ```
+   RESUME_SKILLS_OVERRIDE=python,django,sql,react,fastapi
+   ```
 
 ### 5. Test Locally
 
@@ -101,7 +110,7 @@ Add:
 ### 3. Enable Workflow
 
 The file `.github/workflows/job-hunter.yml` runs:
-- **Every 6 hours** automatically (you can change the cron schedule)
+- **Every day at 8:00 AM IST** automatically
 - **Manually** via "Actions" tab
 
 ### 4. View Logs

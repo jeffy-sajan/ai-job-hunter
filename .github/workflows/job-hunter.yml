@@ -2,8 +2,8 @@ name: AI Job Hunter
 
 on:
   schedule:
-    # Every 6 hours: 0:00, 6:00, 12:00, 18:00 UTC
-    - cron: '0 0,6,12,18 * * *'
+    # Daily 8:00 AM IST (02:30 UTC)
+    - cron: '30 2 * * *'
   workflow_dispatch:  # Allow manual trigger
 
 jobs:
@@ -29,6 +29,7 @@ jobs:
       env:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        RESUME_SKILLS_OVERRIDE: ${{ secrets.RESUME_SKILLS_OVERRIDE }}
       run: python main.py
     
     - name: Commit database changes

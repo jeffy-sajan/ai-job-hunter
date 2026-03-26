@@ -76,6 +76,9 @@ def run_once() -> None:
                 "location": job.get("location", ""),
                 "link": job.get("link"),
                 "summary": tags_text or summary_text or job.get("tags"),
+                "source": job.get("source", ""),
+                "posted_on": job.get("posted_on", job.get("posted", "")),
+                "closing_date": job.get("closing_date", job.get("deadline", "")),
             }
 
             try:

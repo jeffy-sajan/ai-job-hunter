@@ -28,12 +28,14 @@ def _extract_from_markdown(md: str) -> List[Dict]:
 
     # Capture blocks with title, company, and job-details URL.
     pattern = re.compile(
-        r"####\s*(?P<title>.*?)\s*Closing Date:.*?##\s*(?P<company>.*?)\s*Posted On:.*?\((?P<link>https?://technopark\.in/job-details/[^)]+)\)",
+        r"####\s*(?P<title>.*?)\s*Closing Date:\s*(?P<closing_date>.*?)\s*##\s*(?P<company>.*?)\s*Posted On:\s*(?P<posted_on>.*?)\]\((?P<link>https?://technopark\.in/job-details/[^)]+)\)",
         re.IGNORECASE | re.DOTALL,
     )
     for m in pattern.finditer(md):
         title = _clean_text(m.group("title"))
         company = _clean_text(m.group("company")) or "Technopark Company"
+        closing_date = _clean_text(m.group("closing_date"))
+        posted_on = _clean_text(m.group("posted_on"))
         link = m.group("link").replace("http://", "https://")
         if not link or link in seen:
             continue
@@ -46,6 +48,8 @@ def _extract_from_markdown(md: str) -> List[Dict]:
                 "link": link,
                 "summary": _clean_text(m.group(0))[:400],
                 "experience": "",
+                "closing_date": closing_date,
+                "posted_on": posted_on,
                 "source": "technopark",
             }
         )
@@ -144,6 +148,8 @@ def fetch_technopark_jobs(max_pages: int = 2) -> List[Dict]:
                     "link": link,
                     "summary": summary,
                     "experience": experience,
+                    "closing_date": "",
+                    "posted_on": "",
                     "source": "technopark",
                 }
             )

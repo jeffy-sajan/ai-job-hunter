@@ -19,8 +19,17 @@ def send_job_alert(job: Dict[str, str]) -> None:
 		f"Title: {job.get('title', '')}",
 		f"Company: {job.get('company', '')}",
 		f"Location: {job.get('location', '')}",
+		f"Source: {job.get('source', '')}",
 		f"Link: {job.get('link', '')}",
 	]
+
+	posted_on = job.get("posted_on")
+	if posted_on:
+		text_lines.append(f"Posted: {posted_on}")
+
+	closing_date = job.get("closing_date")
+	if closing_date:
+		text_lines.append(f"Closing: {closing_date}")
 	summary = job.get("summary")
 	if summary:
 		text_lines.append("")

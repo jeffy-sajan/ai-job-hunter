@@ -3,6 +3,7 @@ from scraper.naukri import fetch_naukri_jobs
 from scraper.indeed import fetch_indeed_jobs
 from scraper.mock import fetch_mock_jobs
 from scraper.infopark import fetch_infopark_jobs
+from scraper.technopark import fetch_technopark_jobs
 from matcher.scorer import calculate_score
 from matcher.job_filters import is_entry_level_job
 from matcher.resume_profile import build_resume_skill_list
@@ -34,6 +35,9 @@ def run_once() -> None:
     print("Fetching from Infopark...")
     # fetch first page; increase range if you want more pages
     jobs.extend(fetch_infopark_jobs(1))
+
+    print("Fetching from Technopark...")
+    jobs.extend(fetch_technopark_jobs(2))
 
     if not jobs:
         print("No live jobs found. Falling back to mock data.")

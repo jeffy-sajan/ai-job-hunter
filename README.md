@@ -1,6 +1,6 @@
 # AI Job Hunter 🚀
 
-An automated job scraper that finds Python/tech opportunities from **RemoteOK**, **Naukri**, **Indeed**, and **Infopark**, scores them based on your profile, and sends instant **Telegram notifications**.
+An automated job scraper that finds Python/tech opportunities from **RemoteOK**, **Naukri**, **Indeed**, **Infopark**, and **Technopark**, scores them based on your profile, and sends instant **Telegram notifications**.
 
 ## Features
 

@@ -9,12 +9,14 @@ on:
 jobs:
   hunt-jobs:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v5
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
     
@@ -33,5 +35,7 @@ jobs:
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add data/jobs.db
-        git diff --quiet && git diff --staged --quiet || (git commit -m "Update job listings" && git push)
+        if [ -f data/jobs.db ]; then
+          git add -f data/jobs.db
+        fi
+        git diff --staged --quiet || (git commit -m "Update job listings" && git push)

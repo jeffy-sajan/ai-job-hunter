@@ -110,7 +110,7 @@ Add:
 ### 3. Enable Workflow
 
 The file `.github/workflows/job-hunter.yml` runs:
-- **Every day at 8:00 AM IST** automatically
+- **Every 6 hours** automatically
 - **Manually** via "Actions" tab
 
 ### 4. View Logs

@@ -2,8 +2,8 @@ name: AI Job Hunter
 
 on:
   schedule:
-    # Daily 8:00 AM IST (02:30 UTC)
-    - cron: '30 2 * * *'
+    # Every 6 hours
+    - cron: '0 */6 * * *'
   workflow_dispatch:  # Allow manual trigger
 
 jobs:

@@ -25,3 +25,6 @@ MIN_MATCH_SCORE = int(os.getenv("MIN_MATCH_SCORE", "10"))
 # Load from .env file, fallback to empty string
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+
+# Only accept jobs posted within this many days (default 2 days)
+POSTED_WITHIN_DAYS = int(os.getenv("POSTED_WITHIN_DAYS", "3"))

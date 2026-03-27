@@ -7,6 +7,7 @@ An automated job scraper that finds Python/tech opportunities from **RemoteOK**,
 ✅ **Multi-source scraping**: RemoteOK + Naukri + Indeed  
 ✅ **Resume-based scoring**: filters jobs matching your resume/profile  
 ✅ **Entry-level filter**: keeps roles focused on 0-1 year/fresher/intern tracks  
+✅ **MCA/CS role coverage**: includes developer, QA/testing, data/analyst, cloud/devops, security, support/admin, and consulting roles  
 ✅ **Telegram alerts**: Instant notifications for matching jobs  
 ✅ **Duplicate protection**: SQLite prevents repeat notifications  
 ✅ **Zero cost**: Runs free on GitHub Actions  
@@ -127,6 +128,19 @@ Mock Fallback ──→ (if all sources fail)
 ```
 
 ## Customization
+
+### MCA/CS role-aware filtering
+
+Role matching is defined in `matcher/job_filters.py` (`ROLE_KEYWORDS`).
+You can add/remove role phrases to tune what gets included.
+
+Examples currently covered:
+- software/app/web roles
+- QA/testing roles
+- data analyst / BI / MIS roles
+- cloud/devops/support/system admin roles
+- cybersecurity roles
+- technical consultant / implementation / technical writer roles
 
 ### Change job search keywords (Naukri/Indeed):
 

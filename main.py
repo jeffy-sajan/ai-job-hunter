@@ -5,7 +5,7 @@ from scraper.mock import fetch_mock_jobs
 from scraper.infopark import fetch_infopark_jobs
 from scraper.technopark import fetch_technopark_jobs
 from matcher.scorer import calculate_score
-from matcher.job_filters import is_entry_level_job
+from matcher.job_filters import is_entry_level_job, is_cs_masters_eligible_job, get_role_match_count
 from matcher.resume_profile import build_resume_skill_list
 from database.db import init_db, insert_job
 from notifier.telegram import send_job_alert
@@ -98,6 +98,7 @@ def run_once() -> None:
     new_count = 0
     duplicate_count = 0
     filtered_not_entry = 0
+    filtered_not_mca_role = 0
     filtered_low_score = 0
     filtered_old_posted = 0
     sent_any = False
@@ -119,13 +120,19 @@ def run_once() -> None:
             filtered_not_entry += 1
             continue
 
+        if not is_cs_masters_eligible_job(job):
+            filtered_not_mca_role += 1
+            continue
+
         # Build text for scoring: title + company + tags/summary
         tags_text = " ".join(job.get("tags", [])) if job.get("tags") else ""
         summary_text = job.get("summary", "")
         text = " ".join([job.get("title", ""), job.get("company", ""), tags_text, summary_text])
         score = calculate_score(text, resume_skills)
+        role_match_count = get_role_match_count(job)
 
-        if score < MIN_MATCH_SCORE:
+        # Keep broader MCA/CS role coverage: allow low-skill-score jobs when role intent is strong.
+        if score < MIN_MATCH_SCORE and role_match_count < 2:
             filtered_low_score += 1
             continue
 
@@ -156,6 +163,7 @@ def run_once() -> None:
     print(f"New jobs inserted: {new_count}")
     print(f"Duplicates skipped: {duplicate_count}")
     print(f"Filtered (not entry-level): {filtered_not_entry}")
+    print(f"Filtered (not MCA/CS role): {filtered_not_mca_role}")
     print(f"Filtered (posted older than {POSTED_WITHIN_DAYS} days or unknown): {filtered_old_posted}")
     print(f"Filtered (low match score < {MIN_MATCH_SCORE}%): {filtered_low_score}")
 
@@ -167,7 +175,7 @@ def run_once() -> None:
                 "company": "",
                 "location": "",
                 "link": "",
-                "summary": f"No matching jobs in the last {POSTED_WITHIN_DAYS} days.\nFilters: entry-level, resume match, min score {MIN_MATCH_SCORE}%.",
+                "summary": f"No matching jobs in the last {POSTED_WITHIN_DAYS} days.\nFilters: entry-level + MCA/CS role relevance + profile match (min score {MIN_MATCH_SCORE}% or strong role intent).",
                 "source": "All sources",
                 "posted_on": "",
                 "closing_date": "",

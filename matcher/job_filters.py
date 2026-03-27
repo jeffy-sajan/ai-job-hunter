@@ -15,6 +15,65 @@ ENTRY_KEYWORDS = (
     "associate",
 )
 
+# Broader early-career role families suitable for MCA / CS master's graduates.
+ROLE_KEYWORDS = (
+    # Software / application
+    "software developer",
+    "software engineer",
+    "application developer",
+    "web developer",
+    "backend",
+    "frontend",
+    "full stack",
+    "mobile developer",
+    # QA / testing
+    "qa",
+    "quality assurance",
+    "software tester",
+    "test engineer",
+    "automation tester",
+    "manual tester",
+    "sdet",
+    # Data / analytics
+    "data analyst",
+    "business analyst",
+    "product analyst",
+    "bi analyst",
+    "reporting analyst",
+    "mis analyst",
+    "sql analyst",
+    # Cloud / infra / operations
+    "devops",
+    "site reliability",
+    "sre",
+    "cloud engineer",
+    "cloud support",
+    "system administrator",
+    "linux administrator",
+    "database administrator",
+    "dba",
+    "network engineer",
+    "it support",
+    "technical support",
+    "support engineer",
+    "production support",
+    # Security
+    "cyber security",
+    "cybersecurity",
+    "security analyst",
+    "soc analyst",
+    "ethical hacker",
+    "information security",
+    # Product / consulting / documentation
+    "technical consultant",
+    "associate consultant",
+    "solution consultant",
+    "implementation engineer",
+    "technical writer",
+    "systems analyst",
+    "system analyst",
+)
+
 
 def _parse_experience_years(text: str) -> tuple[int | None, int | None]:
     t = text.lower()
@@ -55,3 +114,20 @@ def is_entry_level_job(job: Dict[str, str]) -> bool:
 
     # No explicit years available, rely on role intent.
     return any(k in text for k in ENTRY_KEYWORDS)
+
+
+def get_role_match_count(job: Dict[str, str]) -> int:
+    """Count matched MCA/CS role keywords in title/summary/tags."""
+    text = " ".join(
+        [
+            str(job.get("title", "")),
+            str(job.get("summary", "")),
+            " ".join(job.get("tags", [])) if isinstance(job.get("tags"), list) else "",
+        ]
+    ).lower()
+    return sum(1 for k in ROLE_KEYWORDS if k in text)
+
+
+def is_cs_masters_eligible_job(job: Dict[str, str]) -> bool:
+    """True when role intent matches common MCA/CS master's career paths."""
+    return get_role_match_count(job) > 0

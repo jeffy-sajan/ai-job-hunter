@@ -9,7 +9,57 @@ from matcher.job_filters import is_entry_level_job
 from matcher.resume_profile import build_resume_skill_list
 from database.db import init_db, insert_job
 from notifier.telegram import send_job_alert
-from config import SKILLS, RESUME_PDF_PATH, RESUME_SKILLS_OVERRIDE, MIN_MATCH_SCORE
+from config import SKILLS, RESUME_PDF_PATH, RESUME_SKILLS_OVERRIDE, MIN_MATCH_SCORE, POSTED_WITHIN_DAYS
+import re
+from datetime import datetime, date, timedelta
+
+
+def _parse_posted_date(posted_str: str):
+    if not posted_str:
+        return None
+    s = posted_str.strip()
+    low = s.lower()
+    today = date.today()
+
+    if not low:
+        return None
+    if "just" in low or "now" in low:
+        return today
+    if "today" in low:
+        return today
+    if "yesterday" in low:
+        return today - timedelta(days=1)
+
+    m = re.search(r"(\d+)\s+day", low)
+    if m:
+        try:
+            return today - timedelta(days=int(m.group(1)))
+        except Exception:
+            pass
+
+    m = re.search(r"(\d+)\s+hour", low)
+    if m:
+        try:
+            return (datetime.now() - timedelta(hours=int(m.group(1)))).date()
+        except Exception:
+            pass
+
+    # Try a few common date formats
+    cleaned = re.sub(r"[^0-9A-Za-z, \-/:]", " ", s).strip()
+    fmts = ["%d,%b %Y", "%d %b %Y", "%d-%b-%Y", "%Y-%m-%d", "%b %d, %Y", "%d/%m/%Y"]
+    for fmt in fmts:
+        try:
+            return datetime.strptime(cleaned, fmt).date()
+        except Exception:
+            continue
+
+    # Fallback to dateutil if available
+    try:
+        from dateutil import parser as _dp
+        dt = _dp.parse(s, dayfirst=True)
+        return dt.date()
+    except Exception:
+        return None
 
 
 def run_once() -> None:
@@ -49,8 +99,21 @@ def run_once() -> None:
     duplicate_count = 0
     filtered_not_entry = 0
     filtered_low_score = 0
+    filtered_old_posted = 0
+
+    cutoff_date = date.today() - timedelta(days=POSTED_WITHIN_DAYS)
 
     for job in jobs:
+        # Enforce posted-date cutoff
+        posted_str = job.get("posted_on", job.get("posted", ""))
+        parsed = _parse_posted_date(posted_str)
+        if not parsed:
+            filtered_old_posted += 1
+            continue
+        if parsed < cutoff_date:
+            filtered_old_posted += 1
+            continue
+
         if not is_entry_level_job(job):
             filtered_not_entry += 1
             continue
@@ -91,6 +154,7 @@ def run_once() -> None:
     print(f"New jobs inserted: {new_count}")
     print(f"Duplicates skipped: {duplicate_count}")
     print(f"Filtered (not entry-level): {filtered_not_entry}")
+    print(f"Filtered (posted older than {POSTED_WITHIN_DAYS} days or unknown): {filtered_old_posted}")
     print(f"Filtered (low match score < {MIN_MATCH_SCORE}%): {filtered_low_score}")
 
 

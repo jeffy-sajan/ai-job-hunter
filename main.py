@@ -100,6 +100,7 @@ def run_once() -> None:
     filtered_not_entry = 0
     filtered_low_score = 0
     filtered_old_posted = 0
+    sent_any = False
 
     cutoff_date = date.today() - timedelta(days=POSTED_WITHIN_DAYS)
 
@@ -146,6 +147,7 @@ def run_once() -> None:
 
             try:
                 send_job_alert({**alert_job, "score": score})
+                sent_any = True
             except Exception as e:
                 print(f"Telegram alert failed: {e}")
         else:
@@ -156,6 +158,23 @@ def run_once() -> None:
     print(f"Filtered (not entry-level): {filtered_not_entry}")
     print(f"Filtered (posted older than {POSTED_WITHIN_DAYS} days or unknown): {filtered_old_posted}")
     print(f"Filtered (low match score < {MIN_MATCH_SCORE}%): {filtered_low_score}")
+
+    if not sent_any:
+        print(f"[Main] No jobs sent. Sending 'no jobs found' alert...")
+        try:
+            send_job_alert({
+                "title": "No new jobs found",
+                "company": "",
+                "location": "",
+                "link": "",
+                "summary": f"No matching jobs in the last {POSTED_WITHIN_DAYS} days.\nFilters: entry-level, resume match, min score {MIN_MATCH_SCORE}%.",
+                "source": "All sources",
+                "posted_on": "",
+                "closing_date": "",
+            })
+            print(f"[Main] 'No jobs found' alert attempted")
+        except Exception as e:
+            print(f"[Main] 'No jobs found' alert failed: {e}")
 
 
 if __name__ == "__main__":

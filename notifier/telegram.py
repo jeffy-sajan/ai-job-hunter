@@ -13,6 +13,7 @@ def send_job_alert(job: Dict[str, str]) -> None:
 	"""
 
 	if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+		print(f"[Telegram] Skipping alert: TOKEN={'***' if TELEGRAM_BOT_TOKEN else 'MISSING'}, CHAT_ID={'***' if TELEGRAM_CHAT_ID else 'MISSING'}")
 		return
 
 	text_lines = [
@@ -40,9 +41,11 @@ def send_job_alert(job: Dict[str, str]) -> None:
 	url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
 	payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message}
 	try:
-		requests.post(url, json=payload, timeout=10)
-	except Exception:
-		# Fail silently for now; can be improved with logging
+		print(f"[Telegram] Sending alert for: {job.get('title', 'Unknown')}")
+		r = requests.post(url, json=payload, timeout=10)
+		print(f"[Telegram] Alert sent. Status code: {r.status_code}")
+	except Exception as e:
+		print(f"[Telegram] Failed to send alert: {e}")
 		pass
 
 

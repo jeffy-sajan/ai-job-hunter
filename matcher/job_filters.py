@@ -15,6 +15,18 @@ ENTRY_KEYWORDS = (
     "associate",
 )
 
+SENIOR_KEYWORDS = (
+    "senior",
+    "sr.",
+    "lead",
+    "principal",
+    "staff engineer",
+    "architect",
+    "manager",
+    "director",
+    "head of",
+)
+
 # Broader early-career role families suitable for MCA / CS master's graduates.
 ROLE_KEYWORDS = (
     # Software / application
@@ -96,7 +108,7 @@ def _parse_experience_years(text: str) -> tuple[int | None, int | None]:
 
 
 def is_entry_level_job(job: Dict[str, str]) -> bool:
-    """True for 0-1 year or clearly freshers/intern roles."""
+    """True for early-career roles suitable for freshers and recent graduates."""
     text = " ".join(
         [
             str(job.get("title", "")),
@@ -110,10 +122,18 @@ def is_entry_level_job(job: Dict[str, str]) -> bool:
 
     min_y, max_y = _parse_experience_years(text)
     if min_y is not None and max_y is not None:
-        return min_y <= 1 and max_y <= 1
+        # Allow up to 2 years to include common "fresher / junior" listings.
+        return min_y <= 2 and max_y <= 2
 
-    # No explicit years available, rely on role intent.
-    return any(k in text for k in ENTRY_KEYWORDS)
+    if any(k in text for k in ENTRY_KEYWORDS):
+        return True
+
+    # If explicit senior indicators exist, skip even if role family matches.
+    if any(k in text for k in SENIOR_KEYWORDS):
+        return False
+
+    # No explicit experience: keep CS-role jobs and let downstream filters score them.
+    return any(k in text for k in ROLE_KEYWORDS)
 
 
 def get_role_match_count(job: Dict[str, str]) -> int:

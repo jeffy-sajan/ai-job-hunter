@@ -2,14 +2,22 @@ from scraper.remoteok import fetch_remoteok_jobs
 from scraper.naukri import fetch_naukri_jobs
 from scraper.indeed import fetch_indeed_jobs
 from scraper.mock import fetch_mock_jobs
-from scraper.infopark import fetch_infopark_jobs
+from scraper.infopark import fetch_infopark_jobs_pages
 from scraper.technopark import fetch_technopark_jobs
 from matcher.scorer import calculate_score
-from matcher.job_filters import is_entry_level_job, is_cs_masters_eligible_job, get_role_match_count
+from matcher.job_filters import is_entry_level_job, is_cs_masters_eligible_job
 from matcher.resume_profile import build_resume_skill_list
 from database.db import init_db, insert_job
 from notifier.telegram import send_job_alert
-from config import SKILLS, RESUME_PDF_PATH, RESUME_SKILLS_OVERRIDE, MIN_MATCH_SCORE, POSTED_WITHIN_DAYS
+from config import (
+    SKILLS,
+    RESUME_PDF_PATH,
+    RESUME_SKILLS_OVERRIDE,
+    MIN_MATCH_SCORE,
+    POSTED_WITHIN_DAYS,
+    INFOPARK_MAX_PAGES,
+    TECHNOPARK_MAX_PAGES,
+)
 import re
 from datetime import datetime, date, timedelta
 
@@ -74,20 +82,29 @@ def run_once() -> None:
     jobs = []
 
     print("Fetching from RemoteOK...")
-    jobs.extend(fetch_remoteok_jobs())
+    remote_jobs = fetch_remoteok_jobs()
+    jobs.extend(remote_jobs)
+    print(f"RemoteOK jobs fetched: {len(remote_jobs)}")
 
     print("Fetching from Naukri...")
-    jobs.extend(fetch_naukri_jobs())
+    naukri_jobs = fetch_naukri_jobs()
+    jobs.extend(naukri_jobs)
+    print(f"Naukri jobs fetched: {len(naukri_jobs)}")
 
     print("Fetching from Indeed...")
-    jobs.extend(fetch_indeed_jobs())
+    indeed_jobs = fetch_indeed_jobs()
+    jobs.extend(indeed_jobs)
+    print(f"Indeed jobs fetched: {len(indeed_jobs)}")
 
-    print("Fetching from Infopark...")
-    # fetch first page; increase range if you want more pages
-    jobs.extend(fetch_infopark_jobs(1))
+    print(f"Fetching from Infopark ({INFOPARK_MAX_PAGES} page(s))...")
+    infopark_jobs = fetch_infopark_jobs_pages(INFOPARK_MAX_PAGES)
+    jobs.extend(infopark_jobs)
+    print(f"Infopark jobs fetched: {len(infopark_jobs)}")
 
-    print("Fetching from Technopark...")
-    jobs.extend(fetch_technopark_jobs(2))
+    print(f"Fetching from Technopark ({TECHNOPARK_MAX_PAGES} page(s))...")
+    technopark_jobs = fetch_technopark_jobs(TECHNOPARK_MAX_PAGES)
+    jobs.extend(technopark_jobs)
+    print(f"Technopark jobs fetched: {len(technopark_jobs)}")
 
     if not jobs:
         print("No live jobs found. Falling back to mock data.")
@@ -101,6 +118,7 @@ def run_once() -> None:
     filtered_not_mca_role = 0
     filtered_low_score = 0
     filtered_old_posted = 0
+    kept_unknown_posted = 0
     sent_any = False
 
     cutoff_date = date.today() - timedelta(days=POSTED_WITHIN_DAYS)
@@ -110,9 +128,9 @@ def run_once() -> None:
         posted_str = job.get("posted_on", job.get("posted", ""))
         parsed = _parse_posted_date(posted_str)
         if not parsed:
-            filtered_old_posted += 1
-            continue
-        if parsed < cutoff_date:
+            # Keep jobs where posted date is missing/unclear; many sources omit this.
+            kept_unknown_posted += 1
+        elif parsed < cutoff_date:
             filtered_old_posted += 1
             continue
 
@@ -129,17 +147,23 @@ def run_once() -> None:
         summary_text = job.get("summary", "")
         text = " ".join([job.get("title", ""), job.get("company", ""), tags_text, summary_text])
         score = calculate_score(text, resume_skills)
-        role_match_count = get_role_match_count(job)
 
-        # Keep broader MCA/CS role coverage: allow low-skill-score jobs when role intent is strong.
-        if score < MIN_MATCH_SCORE and role_match_count < 2:
+        # For broader MCA/CS discovery, skill score is a ranking signal, not a hard filter.
+        if score < MIN_MATCH_SCORE:
             filtered_low_score += 1
-            continue
 
         inserted, err = insert_job(job, score)
         if inserted:
             new_count += 1
             print(f"NEW: {job.get('title')} -> {score}%")
+
+            source = job.get("source", "")
+            if not source:
+                link_for_source = (job.get("link", "") or "").lower()
+                if "infopark.in" in link_for_source:
+                    source = "infopark"
+                elif "technopark.in" in link_for_source:
+                    source = "technopark"
 
             alert_job = {
                 "title": job.get("title"),
@@ -147,7 +171,7 @@ def run_once() -> None:
                 "location": job.get("location", ""),
                 "link": job.get("link"),
                 "summary": tags_text or summary_text or job.get("tags"),
-                "source": job.get("source", ""),
+                "source": source,
                 "posted_on": job.get("posted_on", job.get("posted", "")),
                 "closing_date": job.get("closing_date", job.get("deadline", "")),
             }
@@ -164,8 +188,9 @@ def run_once() -> None:
     print(f"Duplicates skipped: {duplicate_count}")
     print(f"Filtered (not entry-level): {filtered_not_entry}")
     print(f"Filtered (not MCA/CS role): {filtered_not_mca_role}")
-    print(f"Filtered (posted older than {POSTED_WITHIN_DAYS} days or unknown): {filtered_old_posted}")
-    print(f"Filtered (low match score < {MIN_MATCH_SCORE}%): {filtered_low_score}")
+    print(f"Filtered (posted older than {POSTED_WITHIN_DAYS} days): {filtered_old_posted}")
+    print(f"Kept with unknown posted date: {kept_unknown_posted}")
+    print(f"Below preferred match score (< {MIN_MATCH_SCORE}%) but kept: {filtered_low_score}")
 
     if not sent_any:
         print(f"[Main] No jobs sent. Sending 'no jobs found' alert...")
@@ -175,7 +200,7 @@ def run_once() -> None:
                 "company": "",
                 "location": "",
                 "link": "",
-                "summary": f"No matching jobs in the last {POSTED_WITHIN_DAYS} days.\nFilters: entry-level + MCA/CS role relevance + profile match (min score {MIN_MATCH_SCORE}% or strong role intent).",
+                "summary": f"No matching jobs found.\nFilters: early-career + MCA/CS role relevance (skill score shown for ranking; preferred threshold {MIN_MATCH_SCORE}%).",
                 "source": "All sources",
                 "posted_on": "",
                 "closing_date": "",

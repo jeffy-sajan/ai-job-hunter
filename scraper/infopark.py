@@ -67,6 +67,29 @@ def fetch_infopark_jobs(page: int = 1) -> List[Dict]:
     return jobs
 
 
+def fetch_infopark_jobs_pages(max_pages: int = 2) -> List[Dict]:
+    """Fetch multiple Infopark pages and dedupe by link."""
+    jobs: List[Dict] = []
+    seen_links = set()
+
+    total_pages = max(1, int(max_pages))
+    for page in range(1, total_pages + 1):
+        try:
+            page_jobs = fetch_infopark_jobs(page)
+        except Exception as exc:
+            print(f"Infopark request error on page {page}: {exc}")
+            continue
+
+        for job in page_jobs:
+            link = (job.get("link") or "").strip()
+            if not link or link in seen_links:
+                continue
+            jobs.append(job)
+            seen_links.add(link)
+
+    return jobs
+
+
 if __name__ == "__main__":
     # Quick manual test
     j = fetch_infopark_jobs(1)
